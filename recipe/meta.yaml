@@ -1,6 +1,6 @@
-{% set version = "1.14.2" %}
+{% set version = "1.14.3" %}
 {% set maj_min_ver = ".".join(version.split(".")[:2]) %}
-{% set build = 0 %}
+{% set build = 5 %}
 
 # recipe-lint fails if mpi is undefined
 {% set mpi = mpi or 'nompi' %}
@@ -37,7 +37,7 @@ package:
 
 source:
   url: https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-{{ maj_min_ver }}/hdf5-{{ version }}/src/hdf5-{{ version }}.tar.gz
-  sha256: 1c342e634008284a8c2794c8e7608e2eaf26d01d445fb3dfd7f33cb2fb51ac53
+  sha256: 09cdb287aa7a89148c1638dd20891fdbae08102cf433ef128fd345338aa237c7
   patches:
     # Atomicity tests seem to fail for openmpi
     # This seems to be a known bug
@@ -48,8 +48,8 @@ source:
     # h5diff help output test is flaky with mpi
     - patches/testh5diff.sh.in.patch              # [mpi != 'nompi']
     # Enable cross-compiling on osx
-    - patches/osx_cross_configure.patch           # [osx and build_platform != target_platform]
-    - patches/osx_cross_makefile.patch            # [osx and build_platform != target_platform]
+    - patches/0001-avoid-test-execution-when-cross-compiling.patch  # [osx and build_platform != target_platform]
+    - patches/0002-run-host-H5detect-when-cross-compiling.patch     # [osx and build_platform != target_platform]
 
 build:
   number: {{ build }}
@@ -57,10 +57,12 @@ build:
   run_exports:
     - {{ pin_subpackage('hdf5', max_pin='x.x.x') }} {{ build_pin }}
 
+
 requirements:
   build:
     - gnuconfig  # [unix]
     - {{ compiler('c') }}
+    - {{ stdlib('c') }}
     - {{ compiler('cxx') }}
     - {{ compiler('fortran') }}  # [not win]
     - cmake                      # [win]
@@ -74,13 +76,12 @@ requirements:
     # Keep both versions of openssl in sync
     - openssl
   host:
-    - {{ mpi }}  # [mpi != 'nompi']
+    - {{ mpi }}   # [mpi != 'nompi' and mpi != 'impi']
+    - impi-devel  # [mpi == 'impi']
     - zlib
     - libaec
     - libcurl
     - openssl
-  run:
-    - {{ mpi }}  # [mpi != 'nompi']
 
 test:
   requires:
@@ -136,8 +137,13 @@ test:
         "h5repack",
         "h5repart",
         "h5stat",
-        "h5unjam"
+        "h5unjam",
     ] %}
+    {% if mpi != 'nompi' %}
+    {% set hdf5_cmds = hdf5_cmds + [
+        "ph5diff",
+    ] %}
+    {% endif %}
     {% for each_hdf5_cmd in hdf5_cmds %}
     - command -v {{ each_hdf5_cmd }}  # [not win]
     - where {{ each_hdf5_cmd }}  # [win]
@@ -162,7 +168,7 @@ test:
 
 about:
   home: https://www.hdfgroup.org/solutions/hdf5/
-  license: LicenseRef-HDF5
+  license: BSD-3-Clause
   license_family: BSD
   license_file: COPYING
   summary: HDF5 is a data model, library, and file format for storing and managing data
@@ -177,7 +183,6 @@ extra:
     - groutr
     - ocefpaf
     - astrofrog
-    - marqh
     - marcelotrevisani
     - scopatz
     - davidbrochart

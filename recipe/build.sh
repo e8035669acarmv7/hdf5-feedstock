@@ -125,8 +125,6 @@ if [[ "$CONDA_BUILD_CROSS_COMPILATION" == 1 ]]; then
     # MACOSX_DEPLOYMENT_TARGET is for the target_platform and not for build_platform
     unset MACOSX_DEPLOYMENT_TARGET
 
-    $CC_FOR_BUILD ${SRC_DIR}/src/H5detect.c -I ${SRC_DIR}/src/ -o H5detect
-    $CC_FOR_BUILD ${SRC_DIR}/src/H5make_libsettings.c -I ${SRC_DIR}/src/ -o H5make_libsettings
     $CC_FOR_BUILD ${SRC_DIR}/fortran/src/H5match_types.c -I ${SRC_DIR}/src/ -o H5match_types
     $FC_FOR_BUILD ${SRC_DIR}/fortran/src/H5_buildiface.F90 -I ${SRC_DIR}/fortran/src/ -L $BUILD_PREFIX/lib -o H5_buildiface
     $FC_FOR_BUILD ${SRC_DIR}/hl/fortran/src/H5HL_buildiface.F90 -I ${SRC_DIR}/hl/fortran/src -I ${SRC_DIR}/fortran/src -L $BUILD_PREFIX/lib -o H5HL_buildiface
@@ -152,5 +150,5 @@ if [[ ("$target_platform" != "linux-ppc64le") && \
       ("$target_platform" != "osx-arm64") ]]; then
   # https://github.com/h5py/h5py/issues/817
   # https://forum.hdfgroup.org/t/hdf5-1-10-long-double-conversions-tests-failed-in-ppc64le/4077
-  make check RUNPARALLEL="${RECIPE_DIR}/mpiexec.sh -n 2"
+  make check RUNPARALLEL="mpiexec -n 2"
 fi
